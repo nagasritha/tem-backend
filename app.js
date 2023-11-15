@@ -125,9 +125,57 @@ app.put("/change-password", async (request, response) => {
 });
 
 app.get("/", async (request, response) => {
-  const fetchData = `SELECT * FROM user`;
+  const fetchData = `SELECT * FROM todo`;
   const queryResponse = await database.all(fetchData);
   response.send(queryResponse);
+});
+
+app.get("/crete", async (request, response) => {
+  const createTableQuery = `
+    CREATE TABLE todo (
+      id INTEGER NOT NULL PRIMARY KEY,
+      first_name VARCHAR(255) NOT NULL,
+      last_name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL, 
+      gender VARCHAR(255) NOT NULL,
+      avatar VARCHAR(255) NOT NULL,
+      domain VARCHAR(255) NOT NULL,
+      available BOOLEAN
+    )
+  `;
+  const fetchData = await database.run(createTableQuery);
+  response.send("table created");
+});
+
+app.post("/todoUsers", async (request, response) => {
+  const {
+    first_name,
+    last_name,
+    email,
+    gender,
+    avatar,
+    domain,
+    available,
+  } = request.body;
+  const firstName = first_name;
+  const lastName = last_name;
+  console.log(firstName, lastName, email, gender, avatar, domain, available);
+  const query1 = `
+  SELECT * FROM todo WHERE email='${email}'`;
+  const resolve = await database.get(query1);
+  if (resolve !== undefined) {
+    response.status(400);
+    response.send(resolve);
+  } else {
+    const insertionQuery = `
+      INSERT INTO todo(first_name,last_name,email,gender,avatar,domain,available)
+      VALUES(
+          '${firstName}','${lastName}','${email}','${gender}','${avatar}','${domain}',${available})
+      
+      `;
+    const dataResponse = await database.run(insertionQuery);
+    response.send("added successfully");
+  }
 });
 
 module.exports = app;
