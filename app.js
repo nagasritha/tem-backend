@@ -178,4 +178,11 @@ app.post("/todoUsers", async (request, response) => {
   }
 });
 
+app.delete("/delete/:id", async (request, response) => {
+  const { id } = request.params;
+  const query = `DELETE FROM todo WHERE id=${id}`;
+  const queryResponse = await database.run(query);
+  response.send({ message: "deleted successfully" });
+});
+
 module.exports = app;
