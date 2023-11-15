@@ -140,7 +140,7 @@ app.post("/usersGroup", async (request, response) => {
     response.send({ message: "added successfully" });
   }
 });
-
+//to Edit the data
 app.put("/users/:id", async (request, response) => {
   const { id } = request.params;
   console.log(id);
@@ -168,5 +168,11 @@ app.put("/users/:id", async (request, response) => {
   const execute = await database.run(query);
   response.send("updated Successfully");
 });
-
+//to delete the user from group
+app.delete("/removeUser/:id", async (request, response) => {
+  const { id } = request.params;
+  const query = `DELETE FROM selfGroup WHERE id=${id}`;
+  const queryResponse = await database.run(query);
+  response.send({ message: "deleted successfully" });
+});
 module.exports = app;
