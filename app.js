@@ -33,120 +33,38 @@ initializeDbAndServer();
 const validatePassword = (password) => {
   return password.length > 4;
 };
-
-app.post("/register", async (request, response) => {
-  const { username, name, password, gender, location } = request.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const selectUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
-  const databaseUser = await database.get(selectUserQuery);
-
-  if (databaseUser === undefined) {
-    const createUserQuery = `
-     INSERT INTO
-      user (username, name, password, gender, location)
-     VALUES
-      (
-       '${username}',
-       '${name}',
-       '${hashedPassword}',
-       '${gender}',
-       '${location}'  
-      );`;
-    if (validatePassword(password)) {
-      await database.run(createUserQuery);
-      response.send("User created successfully");
-    } else {
-      response.status(400);
-      response.send("Password is too short");
-    }
+//to filter the data from the todo list
+app.get("/users/", async (request, response) => {
+  const {
+    domain = "",
+    gender = "",
+    available = "",
+    limit = 20,
+    offset = 0,
+  } = request.query;
+  let query = null;
+  console.log(domain, gender, available);
+  if (gender !== "" && domain !== "" && available !== "") {
+    query = `SELECT * FROM todo WHERE domain IN (${domain}) AND gender IN (${gender}) AND available LIKE ${available} LIMIT ${limit} OFFSET ${offset}`;
+  } else if (gender !== "" && domain !== "") {
+    query = `SELECT * FROM todo WHERE domain IN (${domain}) AND gender IN (${gender}) LIMIT ${limit} OFFSET ${offset}`;
+  } else if (domain !== "" && available !== "") {
+    query = `SELECT * FROM todo WHERE domain IN (${domain}) AND available LIKE ${available} LIMIT ${limit} OFFSET ${offset}`;
+  } else if (gender !== "" && available !== "") {
+    query = `SELECT * FROM todo WHERE gender IN (${gender}) and available LIKE ${available} LIMIT ${limit} OFFSET ${offset}`;
+  } else if (domain !== "") {
+    query = `SELECT * FROM todo WHERE domain IN (${domain}) limit ${limit} offset ${offset}`;
+  } else if (gender !== "") {
+    query = `SELECT * FROM todo WHERE gender IN (${gender}) LIMIT ${limit} OFFSET ${offset}`;
+  } else if (available !== "") {
+    query = `SELECT * FROM todo WHERE available LIKE ${available} LIMIT ${limit} OFFSET ${offset}`;
   } else {
-    response.status(400);
-    response.send("User already exists");
+    query = `SELECT * FROM todo limit ${limit} offset ${offset}`;
   }
+  const fetchedData = await database.all(query);
+  response.send(fetchedData);
 });
-
-app.post("/login", async (request, response) => {
-  const { username, password } = request.body;
-  const selectUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
-  const databaseUser = await database.get(selectUserQuery);
-
-  if (databaseUser === undefined) {
-    response.status(400);
-    response.send("Invalid user");
-  } else {
-    const isPasswordMatched = await bcrypt.compare(
-      password,
-      databaseUser.password
-    );
-    if (isPasswordMatched === true) {
-      response.send("Login success!");
-    } else {
-      response.status(400);
-      response.send("Invalid password");
-    }
-  }
-});
-
-app.put("/change-password", async (request, response) => {
-  const { username, oldPassword, newPassword } = request.body;
-  const selectUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
-  const databaseUser = await database.get(selectUserQuery);
-  if (databaseUser === undefined) {
-    response.status(400);
-    response.send("Invalid user");
-  } else {
-    const isPasswordMatched = await bcrypt.compare(
-      oldPassword,
-      databaseUser.password
-    );
-    if (isPasswordMatched === true) {
-      if (validatePassword(newPassword)) {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        const updatePasswordQuery = `
-          UPDATE
-            user
-          SET
-            password = '${hashedPassword}'
-          WHERE
-            username = '${username}';`;
-
-        const user = await database.run(updatePasswordQuery);
-
-        response.send("Password updated");
-      } else {
-        response.status(400);
-        response.send("Password is too short");
-      }
-    } else {
-      response.status(400);
-      response.send("Invalid current password");
-    }
-  }
-});
-
-app.get("/", async (request, response) => {
-  const fetchData = `SELECT * FROM todo`;
-  const queryResponse = await database.all(fetchData);
-  response.send(queryResponse);
-});
-
-app.get("/crete", async (request, response) => {
-  const createTableQuery = `
-    CREATE TABLE todo (
-      id INTEGER NOT NULL PRIMARY KEY,
-      first_name VARCHAR(255) NOT NULL,
-      last_name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL, 
-      gender VARCHAR(255) NOT NULL,
-      avatar VARCHAR(255) NOT NULL,
-      domain VARCHAR(255) NOT NULL,
-      available BOOLEAN
-    )
-  `;
-  const fetchData = await database.run(createTableQuery);
-  response.send("table created");
-});
-
+//to add data into the todo list
 app.post("/todoUsers", async (request, response) => {
   const {
     first_name,
@@ -177,12 +95,77 @@ app.post("/todoUsers", async (request, response) => {
     response.send("added successfully");
   }
 });
-
+//to delete data from the todo list
 app.delete("/delete/:id", async (request, response) => {
   const { id } = request.params;
   const query = `DELETE FROM todo WHERE id=${id}`;
   const queryResponse = await database.run(query);
   response.send({ message: "deleted successfully" });
+});
+//to get the data from the users group
+app.get("/usersGroup", async (request, response) => {
+  const query = `SELECT * FROM selfGroup`;
+  const details = await database.all(query);
+  response.send(details);
+});
+//to post the data into the users group
+app.post("/usersGroup", async (request, response) => {
+  const {
+    first_name,
+    last_name,
+    email,
+    gender,
+    avatar,
+    domain,
+    available,
+  } = request.body;
+  const firstName = first_name;
+  const lastName = last_name;
+  console.log(firstName, lastName, email, gender, avatar, domain, available);
+  const query1 = `
+  SELECT * FROM selfGroup WHERE email='${email}'`;
+  const resolve = await database.get(query1);
+  if (resolve !== undefined) {
+    response.status(400);
+    response.send({ message: "user already exists" });
+  } else {
+    const insertionQuery = `
+      INSERT INTO selfGroup(first_name,last_name,email,gender,avatar,domain,available)
+      VALUES(
+          '${firstName}','${lastName}','${email}','${gender}','${avatar}','${domain}',${available})
+      
+      `;
+    const dataResponse = await database.run(insertionQuery);
+    response.send({ message: "added successfully" });
+  }
+});
+
+app.put("/users/:id", async (request, response) => {
+  const { id } = request.params;
+  console.log(id);
+  const {
+    first_name,
+    last_name,
+    email,
+    gender,
+    avatar,
+    domain,
+    available,
+  } = request.body;
+  const firstName = first_name;
+  const lastName = last_name;
+  const query = `
+ UPDATE todo
+ SET first_name='${firstName}',
+ last_name='${lastName}',
+ email='${email}',
+ gender='${gender}',
+ avatar='${avatar}',
+ domain='${domain}',
+ available=${available}
+ WHERE id=${id}`;
+  const execute = await database.run(query);
+  response.send("updated Successfully");
 });
 
 module.exports = app;
