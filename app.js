@@ -175,4 +175,13 @@ app.delete("/removeUser/:id", async (request, response) => {
   const queryResponse = await database.run(query);
   response.send({ message: "deleted successfully" });
 });
+//fetches the user with his name
+app.get("/user/:name", async (request, response) => {
+  const { name } = request.params;
+  const query = `
+    SELECT * FROM todo WHERE first_name LIKE '%${name}%' `;
+  const fetchedData = await database.get(query);
+  response.send(fetchedData);
+});
+
 module.exports = app;
