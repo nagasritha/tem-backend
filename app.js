@@ -181,7 +181,13 @@ app.get("/user/:name", async (request, response) => {
   const query = `
     SELECT * FROM todo WHERE first_name LIKE '%${name}%' `;
   const fetchedData = await database.get(query);
-  response.send(fetchedData);
+  if (fetchedData !== undefined) {
+    response.send(fetchedData);
+  } else {
+    response.send({
+      message: "There are no users with the name you searched.",
+    });
+  }
 });
 
 module.exports = app;
