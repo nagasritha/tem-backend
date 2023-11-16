@@ -180,7 +180,7 @@ app.get("/user/:name", async (request, response) => {
   const { name } = request.params;
   const query = `
     SELECT * FROM todo WHERE first_name LIKE '%${name}%' `;
-  const fetchedData = await database.get(query);
+  const fetchedData = await database.all(query);
   if (fetchedData !== undefined) {
     response.send(fetchedData);
   } else {
